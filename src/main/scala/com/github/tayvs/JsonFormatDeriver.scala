@@ -2,7 +2,7 @@ package com.github.tayvs
 
 import com.github.tayvs.annotation._
 import magnolia._
-import spray.json.{JsObject, JsValue, JsonFormat, JsonReader, JsonWriter}
+import spray.json._
 
 import scala.language.experimental.macros
 
@@ -21,6 +21,9 @@ object JsonFormatDeriver extends Cache {
   private def paramMapper[T](optCaseClass: Option[NameStyle], p: Param[Typeclass, _]): String => String =
     optCaseClass.orElse(findNameStyle(p.annotations)).map(annotationBasedLabelMapper).getOrElse(identity)
 
+  private def deserializationException(field: String, `type`: String): Nothing =
+    deserializationError(s"Excepted field $field with type ${`type`}", fieldNames = List(field))
+
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = cached(caseClass.typeName.full) {
     new Typeclass[T] {
       println("macro deriving")
@@ -31,14 +34,22 @@ object JsonFormatDeriver extends Cache {
           caseClass.parameters
             .map { p: Param[Typeclass, T] =>
               val labelTransformer = paramMapper(optMapping, p)
-              labelTransformer(p.label) -> p.typeclass.write(p.dereference(obj))
+              val label = labelTransformer(p.label)
+              label -> p.typeclass.write(p.dereference(obj))
             }
             .toMap
         )
       }
 
-      override def read(json: JsValue): T =
-        caseClass.rawConstruct(caseClass.parameters.map(p => p.typeclass.read(json)))
+      override def read(json: JsValue): T = {
+        val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
+        val fields = json.asJsObject.fields
+        caseClass.rawConstruct(caseClass.parameters.map { p =>
+          val labelTransformer = paramMapper(optMapping, p)
+          val label = labelTransformer(p.label)
+          p.typeclass.read(fields.getOrElse(label, deserializationException(label, p.getClass.getSimpleName)))
+        })
+      }
     }
   }
 
