@@ -12,17 +12,12 @@ object JsonFormatDeriver extends Cache {
 
   private def findNameStyle(anns: Seq[Any]): Option[NameStyle] = anns.collectFirst { case a: NameStyle => a }
 
-  private def annotationBasedLabelMapper(a: NameStyle): String => String = a match {
-    case _: Snake => NamingUtils.snakize
-    case _: Camel => NamingUtils.camelize
-    case _: Pascal => NamingUtils.pascalize
-  }
-
   private def paramMapper[T](optCaseClass: Option[NameStyle], p: Param[Typeclass, _]): String => String =
-    optCaseClass.orElse(findNameStyle(p.annotations)).map(annotationBasedLabelMapper).getOrElse(identity)
+    optCaseClass.orElse(findNameStyle(p.annotations)).map(_.nameTransformer).getOrElse(identity)
 
   private def deserializationException(field: String, `type`: String): Nothing =
     deserializationError(s"Excepted field $field with type ${`type`}", fieldNames = List(field))
+
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = cached(caseClass.typeName.full) {
     new Typeclass[T] {
