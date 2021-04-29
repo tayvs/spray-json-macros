@@ -22,9 +22,9 @@ object JsonFormatDeriver extends Cache {
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = cached(caseClass.typeName.full) {
     new Typeclass[T] {
       println("macro deriving")
+      val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
 
       override def write(obj: T): JsValue = {
-        val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
         JsObject(
           caseClass.parameters
             .map { p: Param[Typeclass, T] =>
@@ -37,7 +37,6 @@ object JsonFormatDeriver extends Cache {
       }
 
       override def read(json: JsValue): T = {
-        val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
         val fields = json.asJsObject.fields
         caseClass.rawConstruct(caseClass.parameters.map { p =>
           val labelTransformer = paramMapper(optMapping, p)
