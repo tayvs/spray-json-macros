@@ -1,4 +1,4 @@
-package com.github.tayvs
+package com.github.tayvs.derive
 
 import spray.json.{JsString, JsValue, JsonFormat}
 
@@ -12,7 +12,7 @@ trait AutoEnumFormats {
 object AutoEnumFormats extends AutoEnumFormats
 
 object EnumFormatMacros {
-  def enumFormatMacro[T <: Enumeration : c.WeakTypeTag](c: Context) = {
+  def enumFormatMacro[T <: Enumeration : c.WeakTypeTag](c: Context): c.universe.Expr[JsonFormat[T#Value]] = {
     import c.universe._
 
     val tt = weakTypeOf[T]

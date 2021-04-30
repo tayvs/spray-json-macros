@@ -1,6 +1,6 @@
 package com.github.tayvs.annotation
 
-import com.github.tayvs.NamingUtils
+import com.github.tayvs.derive.NamingUtils
 
 import scala.annotation.StaticAnnotation
 

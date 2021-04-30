@@ -1,21 +1,12 @@
-package com.github.tayvs
+package com.github.tayvs.derive
 
-import com.github.tayvs.DeriveHelper.{deserializationException, findNameStyle, paramMapper}
 import com.github.tayvs.annotation._
+import com.github.tayvs.derive.DeriveHelper._
+import com.github.tayvs.utils.Cache
 import magnolia._
 import spray.json._
 
 import scala.language.experimental.macros
-
-object DeriveHelper {
-  private[tayvs] def findNameStyle(anns: Seq[Any]): Option[NameStyle] = anns.collectFirst { case a: NameStyle => a }
-
-  private[tayvs] def paramMapper[T, TC[_]](optCaseClass: Option[NameStyle], p: Param[TC, T]): String => String =
-    optCaseClass.orElse(findNameStyle(p.annotations)).map(_.nameTransformer).getOrElse(identity)
-
-  private[tayvs] def deserializationException(field: String, `type`: String): Nothing =
-    deserializationError(s"Excepted field $field with type ${`type`}", fieldNames = List(field))
-}
 
 object JsonFormatDeriver extends Cache {
 
@@ -41,7 +32,8 @@ object JsonReaderDeriver extends Cache {
 
   type Typeclass[T] = JsonReader[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    validateAnnotation(caseClass)
     cached(caseClass.typeName.full) {
       val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
       (json: JsValue) => {
@@ -57,6 +49,7 @@ object JsonReaderDeriver extends Cache {
         })
       }
     }
+  }
 
   implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
 
@@ -66,7 +59,8 @@ object JsonWriterDeriver extends Cache {
 
   type Typeclass[T] = JsonWriter[T]
 
-  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
+  def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
+    validateAnnotation(caseClass)
     cached(caseClass.typeName.full) {
       val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
 
@@ -81,6 +75,7 @@ object JsonWriterDeriver extends Cache {
             .toMap
         )
     }
+  }
 
   //TODO
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =

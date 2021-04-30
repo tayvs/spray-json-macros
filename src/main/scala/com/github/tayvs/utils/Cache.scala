@@ -1,4 +1,4 @@
-package com.github.tayvs
+package com.github.tayvs.utils
 
 trait Cache {
 
