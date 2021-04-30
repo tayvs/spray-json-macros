@@ -1,6 +1,6 @@
 package com.github.tayvs
 
-import JsonFormatDeriver.{Typeclass, gen}
+import com.github.tayvs.JsonFormatDeriver.gen
 import com.github.tayvs.annotation.Snake
 import spray.json._
 
@@ -11,14 +11,13 @@ object Boot extends App with DefaultJsonProtocol {
   @Snake
   case class SnakeDog(hotdogsIn: Long, manufactureName: String)
 
+  case class DickedDog(hotDogsCount: Long, dick: Boolean = true)
+  case class HairedDog(hotDogsCount: Long, dick: Boolean, hair: Option[String] = None)
+
   println(Dog(1000L, "Japan").toJson.prettyPrint)
-  println(Dog(10_000L, "China").toJson.sortedPrint)
-  println(Dog(100_000L, "China").toJson.sortedPrint)
-
-
   println(SnakeDog(1000L, "Japan").toJson.prettyPrint)
-  println(SnakeDog(10_000L, "China").toJson.sortedPrint)
-  println(SnakeDog(100_000L, "China").toJson.sortedPrint)
+  println(HairedDog(100_000L, true, None).toJson.prettyPrint)
+  println(DickedDog(100_000L).toJson.prettyPrint)
 
   println()
   println("#" * 80)
@@ -26,6 +25,10 @@ object Boot extends App with DefaultJsonProtocol {
 
   println(SnakeDog(100_000L, "China").toJson.toString().parseJson.convertTo[SnakeDog])
   println(Dog(100_000L, "China").toJson.toString().parseJson.convertTo[Dog])
+  println("""{"hotDogsCount":100000,"dick":true}""".parseJson.convertTo[HairedDog])
+  println(HairedDog(100_000L, true, None).toJson.toString().parseJson.convertTo[HairedDog])
+  println("""{"hotDogsCount":100000}""".parseJson.convertTo[DickedDog])
+  println(DickedDog(100_000L).toJson.toString().parseJson.convertTo[DickedDog])
 
   println()
   println("#" * 80)

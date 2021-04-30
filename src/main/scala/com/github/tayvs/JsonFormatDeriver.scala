@@ -49,7 +49,11 @@ object JsonReaderDeriver extends Cache {
         caseClass.rawConstruct(caseClass.parameters.map { p =>
           val labelTransformer = paramMapper(optMapping, p)
           val label = labelTransformer(p.label)
-          p.typeclass.read(fields.getOrElse(label, deserializationException(label, p.getClass.getSimpleName)))
+          println(s"$label ${p.default}")
+          fields
+            .get(label).map(p.typeclass.read)
+            .orElse(p.default)
+            .getOrElse(deserializationException(label, p.getClass.getSimpleName))
         })
       }
     }
