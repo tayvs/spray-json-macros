@@ -9,3 +9,5 @@ sealed abstract class NameStyle(val nameTransformer: String => String) extends S
 final class Snake extends NameStyle(NamingUtils.snakize)
 final class Camel extends NameStyle(NamingUtils.camelize)
 final class Pascal extends NameStyle(NamingUtils.pascalize)
+
+final class Name(name: String) extends NameStyle(_ => name)
