@@ -19,11 +19,15 @@ object Boot extends App with DefaultJsonProtocol {
   @Name("wwww")
   case class InvalidNameAnnotationLevel(field: String)
 
+  case class Leaf(value: String, left: Option[Leaf] = None, right: Option[Leaf] = None)
+
   println(Dog(1000L, "Japan").toJson.prettyPrint)
   println(SnakeDog(1000L, "Japan").toJson.prettyPrint)
   println(HairedDog(100_000L, true, None).toJson.prettyPrint)
   println(DickedDog(100_000L).toJson.prettyPrint)
   println(CustomName("someValue").toJson.prettyPrint)
+  println(Leaf("someValue").toJson.prettyPrint)
+  println(Leaf("someValue").toJson.compactPrint)
 
   println()
   println("#" * 80)
