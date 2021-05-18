@@ -4,6 +4,7 @@ import spray.json._
 import derive.JsonFormatDeriver.gen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import spray.json.DefaultJsonProtocol._
 
 case class TestFunDefault(
   a: String = "default",

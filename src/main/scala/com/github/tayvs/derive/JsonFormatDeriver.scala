@@ -37,15 +37,22 @@ object JsonReaderDeriver extends Cache {
     cached(caseClass.typeName.full) {
       val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
       (json: JsValue) => {
+        println("json " + json)
+        println("caseclass " + caseClass.typeName)
         val fields = json.asJsObject.fields
         caseClass.rawConstruct(caseClass.parameters.map { p =>
           val labelTransformer = paramMapper(optMapping, p)
           val label = labelTransformer(p.label)
-          println(s"$label ${p.default}")
-          fields
-            .get(label).map(p.typeclass.read)
-            .orElse(p.default)
-            .getOrElse(deserializationException(label, p.getClass.getSimpleName))
+          println(s"label $label default ${p.default}")
+          fields.get(label) match {
+            case Some(value) => p.typeclass.read(value)
+            case None if p.default.isDefined => p.default.get
+            case None => p.typeclass.read(JsNull)
+          }
+
+//            .map(p.typeclass.read)
+//            .orElse(p.default)
+//            .getOrElse(deserializationException(label, p.getClass.getSimpleName))
         })
       }
     }
@@ -61,21 +68,43 @@ object JsonWriterDeriver extends Cache {
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] = {
     validateAnnotation(caseClass)
-    cached(caseClass.typeName.full) {
+    cached(caseClass.getClass.toString) {
       val optMapping: Option[NameStyle] = findNameStyle(caseClass.annotations)
 
       (obj: T) =>
         JsObject(
           caseClass.parameters
-            .map { p =>
-              val labelTransformer = paramMapper(optMapping, p)
-              val label = labelTransformer(p.label)
-              label -> p.typeclass.write(p.dereference(obj))
-            }
+            .withFilter(!_.annotations.exists(_.isInstanceOf[JsonIgnore]))
+            .flatMap(writeValue(obj, _, optMapping))
             .toMap
         )
     }
   }
+
+  private def writeValue[T](obj: T, p: Param[Typeclass, T], optMapping: Option[NameStyle]): Seq[(String, JsValue)] = {
+    findJsonUnwrapped(p.annotations) match {
+      case Some(un) => writeUnwrappedValue(obj, p, un)
+      case None => writePlainValue(obj, p, optMapping)
+    }
+  }
+
+  private def writeUnwrappedValue[T](obj: T, p: Param[Typeclass, T], unwrapped: JsonUnwrapped): Seq[(String, JsValue)] = {
+    val prefix = unwrapped.prefix
+    val suffix = unwrapped.suffix
+    p.typeclass.write(p.dereference(obj)) match {
+      case JsObject(fields) => fields.map { case (k, v) => (prefix + k + suffix) -> v }.toList
+      case _ => deserializationException(p.label, "JsObject")
+    }
+  }
+
+  private def writePlainValue[T](obj: T, p: Param[Typeclass, T], optMapping: Option[NameStyle]): Seq[(String, JsValue)] =
+    p.typeclass.write(p.dereference(obj)) match {
+      case JsNull => Nil
+      case value =>
+        val labelTransformer = paramMapper(optMapping, p)
+        val label = labelTransformer(p.label)
+        List(label -> value)
+    }
 
   //TODO
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =

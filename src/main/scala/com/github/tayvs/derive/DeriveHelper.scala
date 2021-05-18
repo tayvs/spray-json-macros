@@ -9,6 +9,8 @@ import scala.util.control.NoStackTrace
 private[derive] object DeriveHelper {
   def findNameStyle(anns: Seq[Any]): Option[NameStyle] = anns.collectFirst { case a: NameStyle => a }
 
+  def findJsonUnwrapped(anns: Seq[Any]): Option[JsonUnwrapped] = anns.collectFirst { case u: JsonUnwrapped => u }
+
   def paramMapper[T, TC[_]](optCaseClass: Option[NameStyle], p: Param[TC, T]): String => String =
     optCaseClass.orElse(findNameStyle(p.annotations)).map(_.nameTransformer).getOrElse(identity)
 
